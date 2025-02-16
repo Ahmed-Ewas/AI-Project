@@ -1,0 +1,9 @@
+{
+  "class": "evaluation.listeners.MetricsGameListener",
+  "args": [
+    [
+    {"class": "evaluation.metrics.GameMetrics$GameDuration" },
+    {"class": "evaluation.metrics.GameMetrics$Decisions" },
+      {"class": "evaluation.metrics.GameMetrics$Winner" }
+    ]]
+}
