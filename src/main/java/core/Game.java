@@ -12,11 +12,13 @@ import games.GameType;
 import gui.AbstractGUIManager;
 import gui.GUI;
 import gui.GamePanel;
+import players.basicMCTS.BasicMCTSParams;
 import players.basicMCTS.BasicMCTSPlayer;
+import players.bayesianMCTS.BayesianMCTSParams;
+import players.bayesianMCTS.BayesianMCTSPlayer;
 import players.human.ActionController;
 import players.human.HumanConsolePlayer;
 import players.human.HumanGUIPlayer;
-import players.simple.RandomPlayer;
 import utilities.Pair;
 import utilities.Utils;
 
@@ -821,14 +823,17 @@ public class Game {
      * and then run this class.
      */
     public static void main(String[] args) {
-        String gameType = Utils.getArg(args, "game", "Saboteur");
+        String gameType = Utils.getArg(args, "game", "Blackjack");
         boolean useGUI = Utils.getArg(args, "gui", true);
-        int turnPause = Utils.getArg(args, "turnPause", 0);
+        int turnPause = Utils.getArg(args, "turnPause", 10);
         long seed = Utils.getArg(args, "seed", System.currentTimeMillis());
         ActionController ac = new ActionController();
 
         /* Set up players for the game */
         ArrayList<AbstractPlayer> players = new ArrayList<>();
+
+        // Create Bayesian MCTS player with custom parameters
+
 //        players.add(new RandomPlayer());
 //        players.add(new RandomPlayer());
 //        players.add(new BasicMCTSPlayer());
@@ -846,8 +851,16 @@ public class Game {
 //        players.add(new OSLAPlayer());
 //        players.add(new RMHCPlayer());
         players.add(new HumanGUIPlayer(ac));
-        players.add(new HumanGUIPlayer(ac));
-        players.add(new HumanGUIPlayer(ac));
+//        players.add(new HumanGUIPlayer(ac));
+//        players.add(new MCTSPlayer(params))
+
+        BayesianMCTSParams bayesianParams = new BayesianMCTSParams();
+        bayesianParams.beliefSamples = 20; // More samples for better accuracy
+        bayesianParams.rolloutLength = 15; // Longer rollouts
+        players.add(new BayesianMCTSPlayer(bayesianParams));
+
+        players.add(new BasicMCTSPlayer(new BasicMCTSParams(), "Bayesian MCTS"));
+//        players.add(new HumanGUIPlayer(ac));
 //        players.add(new HumanConsolePlayer());
 //        players.add(new FirstActionPlayer());
 
