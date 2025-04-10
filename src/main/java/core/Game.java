@@ -850,7 +850,6 @@ public class Game {
 
 //        players.add(new OSLAPlayer());
 //        players.add(new RMHCPlayer());
-        players.add(new HumanGUIPlayer(ac));
 //        players.add(new HumanGUIPlayer(ac));
 //        players.add(new MCTSPlayer(params))
 
@@ -859,7 +858,7 @@ public class Game {
         bayesianParams.rolloutLength = 15; // Longer rollouts
         players.add(new BayesianMCTSPlayer(bayesianParams));
 
-        players.add(new BasicMCTSPlayer(new BasicMCTSParams(), "Bayesian MCTS"));
+        players.add(new BasicMCTSPlayer(new BasicMCTSParams()));
 //        players.add(new HumanGUIPlayer(ac));
 //        players.add(new HumanConsolePlayer());
 //        players.add(new FirstActionPlayer());
