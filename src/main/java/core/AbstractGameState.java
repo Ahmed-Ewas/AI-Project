@@ -32,7 +32,19 @@ import static core.CoreConstants.GameResult.*;
  * Separately the AbstractPlayer has a ForwardModel to be used if needed - this caters for the possibility that
  * agents may want to use a different/learned forward model in some use cases.
  */
-public abstract class AbstractGameState {
+public abstract class AbstractGameState implements Cloneable {
+    @Override
+    public AbstractGameState clone() {
+        try {
+            return (AbstractGameState) super.clone();
+        } catch (CloneNotSupportedException e) {
+            throw new AssertionError(); // Can never happen
+        }
+    }
+
+    public List<AbstractAction> getActions() {
+        return new ArrayList<>();  // Default to no actions
+    }
 
     // Parameters, forward model and turn order for the game
     protected final AbstractParameters gameParameters;

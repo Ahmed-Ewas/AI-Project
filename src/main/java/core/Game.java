@@ -12,6 +12,7 @@ import games.GameType;
 import gui.AbstractGUIManager;
 import gui.GUI;
 import gui.GamePanel;
+import players.ISMCTS.ISMCTSPlayer;
 import players.basicMCTS.BasicMCTSParams;
 import players.basicMCTS.BasicMCTSPlayer;
 import players.bayesianMCTS.BayesianMCTSParams;
@@ -823,7 +824,7 @@ public class Game {
      * and then run this class.
      */
     public static void main(String[] args) {
-        String gameType = Utils.getArg(args, "game", "Blackjack");
+        String gameType = Utils.getArg(args, "game", "Uno");
         boolean useGUI = Utils.getArg(args, "gui", true);
         int turnPause = Utils.getArg(args, "turnPause", 10);
         long seed = Utils.getArg(args, "seed", System.currentTimeMillis());
@@ -850,6 +851,7 @@ public class Game {
 
 //        players.add(new OSLAPlayer());
 //        players.add(new RMHCPlayer());
+
 //        players.add(new HumanGUIPlayer(ac));
 //        players.add(new MCTSPlayer(params))
 
@@ -858,6 +860,8 @@ public class Game {
         bayesianParams.rolloutLength = 15; // Longer rollouts
         players.add(new BayesianMCTSPlayer(bayesianParams));
 
+
+        players.add(new ISMCTSPlayer(15));
         players.add(new BasicMCTSPlayer(new BasicMCTSParams()));
 //        players.add(new HumanGUIPlayer(ac));
 //        players.add(new HumanConsolePlayer());
