@@ -45,6 +45,7 @@ public abstract class AbstractGameState implements Cloneable {
     public List<AbstractAction> getActions() {
         return new ArrayList<>();  // Default to no actions
     }
+
     // Parameters, forward model and turn order for the game
     protected final AbstractParameters gameParameters;
     // Game being played

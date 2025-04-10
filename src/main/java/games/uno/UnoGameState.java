@@ -53,7 +53,6 @@ public class UnoGameState extends AbstractGameState implements IPrintable {
         }};
     }
 
-
     boolean isWildCard(UnoCard card) {
         return card.type == Wild;
     }
