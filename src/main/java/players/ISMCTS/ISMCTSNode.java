@@ -30,6 +30,7 @@ public class ISMCTSNode {
     }
 
     public boolean isFullyExpanded(AbstractGameState state) {
+        // A node is fully expanded if the number of children matches the number of legal actions.
         return fullyExpanded || children.size() >= state.getActions().size();
     }
 
@@ -37,12 +38,29 @@ public class ISMCTSNode {
         this.fullyExpanded = fullyExpanded;
     }
 
-    public ISMCTSNode getParent() { return parent; }
-    public AbstractAction getAction() { return action; }
-    public int getPlayer() { return player; }
-    public int getVisitCount() { return visitCount; }
-    public double getTotalReward() { return totalReward; }
-    public List<ISMCTSNode> getChildren() { return children; }
+    public ISMCTSNode getParent() {
+        return parent;
+    }
+
+    public AbstractAction getAction() {
+        return action;
+    }
+
+    public int getPlayer() {
+        return player;
+    }
+
+    public int getVisitCount() {
+        return visitCount;
+    }
+
+    public double getTotalReward() {
+        return totalReward;
+    }
+
+    public List<ISMCTSNode> getChildren() {
+        return children;
+    }
 
     public void addChild(ISMCTSNode child) {
         children.add(child);
