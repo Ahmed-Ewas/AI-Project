@@ -13,6 +13,7 @@ public class BayesianMCTSParams extends PlayerParameters {
     public double epsilon = 1e-6;
     public IStateHeuristic heuristic = AbstractGameState::getHeuristicScore;
     public int beliefSamples = 10; // Number of belief states to sample
+    public int determinizations = 10; // Number of determinizations to generate
 
     public BayesianMCTSParams() {
         addTunableParameter("K", Math.sqrt(2), Arrays.asList(0.0, 0.1, 1.0, Math.sqrt(2), 3.0, 10.0));
@@ -21,6 +22,7 @@ public class BayesianMCTSParams extends PlayerParameters {
         addTunableParameter("epsilon", 1e-6);
         addTunableParameter("heuristic", (IStateHeuristic) AbstractGameState::getHeuristicScore);
         addTunableParameter("beliefSamples", 10, Arrays.asList(1, 5, 10, 20, 50));
+        addTunableParameter("determinizations", 10, Arrays.asList(1, 5, 10, 20, 50));
     }
 
     @Override
@@ -32,6 +34,7 @@ public class BayesianMCTSParams extends PlayerParameters {
         epsilon = (double) getParameterValue("epsilon");
         heuristic = (IStateHeuristic) getParameterValue("heuristic");
         beliefSamples = (int) getParameterValue("beliefSamples");
+        determinizations = (int) getParameterValue("determinizations");
     }
 
     @Override

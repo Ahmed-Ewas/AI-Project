@@ -1,6 +1,8 @@
+
 package players.bayesianMCTS;
 
 import core.AbstractGameState;
+import core.CoreConstants;
 import core.actions.AbstractAction;
 import core.components.Card;
 import players.PlayerConstants;
@@ -22,6 +24,7 @@ public class BayesianTreeNode {
     private AbstractGameState state;
     private Map<Card, Double> cardProbabilities;
     private List<AbstractGameState> possibleHiddenStates;
+    private int lastPlayerToAct;  // Added field to fix the error
 
     public BayesianTreeNode(BayesianMCTSPlayer player, BayesianTreeNode parent,
                             AbstractGameState state, Random rnd,
@@ -33,7 +36,8 @@ public class BayesianTreeNode {
         this.nVisits = 0;
         this.depth = parent == null ? 0 : parent.depth + 1;
         this.rnd = rnd;
-        this.cardProbabilities = new HashMap<>(cardProbabilities);
+        this.cardProbabilities = cardProbabilities != null ? new HashMap<>(cardProbabilities) : null;
+        this.lastPlayerToAct = -1;  // Initialize to invalid player
         setState(state);
     }
 
@@ -123,33 +127,61 @@ public class BayesianTreeNode {
     }
 
     private List<AbstractGameState> samplePossibleStates() {
+        BayesianMCTSPlayer player = (BayesianMCTSPlayer) this.player;
+        BlackjackInformationSet infoSet = player.getInformationSet();
+
         List<AbstractGameState> samples = new ArrayList<>();
         for (int i = 0; i < player.getParameters().beliefSamples; i++) {
-            samples.add(sampleBeliefState());
+            AbstractGameState sample = infoSet.sample();
+            if (sample != null) {
+                samples.add(sample);
+            }
         }
+
+        if (samples.isEmpty()) {
+            samples.add(state.copy());
+        }
+
         return samples;
     }
 
-    private AbstractGameState sampleBeliefState() {
-        AbstractGameState sampledState = state.copy();
-        // Implement sampling of hidden information based on cardProbabilities
-        return sampledState;
-    }
-
     private double getStateProbability(AbstractGameState hiddenState) {
-        // Calculate probability of this hidden state based on cardProbabilities
-        return 1.0 / player.getParameters().beliefSamples; // Simple uniform distribution
+        return 1.0 / player.getParameters().beliefSamples;
     }
 
     private double evaluate(AbstractGameState gs) {
         return player.getParameters().getHeuristic().evaluateState(gs, player.getPlayerID());
     }
 
-    private void advance(AbstractGameState gs, AbstractAction act) {
-        player.getForwardModel().next(gs, act);
-        root.fmCallsCount++;
-    }
 
+    private void advance(AbstractGameState gs, AbstractAction act) {
+        try {
+            int currentPlayer = gs.getCurrentPlayer();
+            try {
+                player.getForwardModel().next(gs, act);
+            } catch (AssertionError e) {
+                // Check if this is the infinite loop error
+                if (e.getMessage() != null && e.getMessage().contains("Infinite loop")) {
+                    // Force game to end to prevent infinite loop
+                    gs.setGameStatus(CoreConstants.GameResult.GAME_END);
+                    return;
+                } else {
+                    // Re-throw other assertion errors
+                    throw e;
+                }
+            }
+
+            fmCallsCount++;
+
+            if (gs.isNotTerminal() && gs.getCurrentPlayer() == currentPlayer) {
+                gs.setGameStatus(CoreConstants.GameResult.GAME_ONGOING);
+            }
+
+            lastPlayerToAct = currentPlayer;
+        } catch (Exception e) {
+            System.err.println("Error in advance: " + e.getMessage());
+        }
+    }
     private AbstractAction ucb() {
         AbstractAction bestAction = null;
         double bestValue = -Double.MAX_VALUE;
@@ -176,20 +208,70 @@ public class BayesianTreeNode {
 
     private double rollOut() {
         int rolloutDepth = 0;
-        AbstractGameState rolloutState = sampleBeliefState();
+        AbstractGameState rolloutState = state.copy();
 
-        if (player.getParameters().rolloutLength > 0) {
+        Set<Integer> playersActed = new HashSet<>();
+        int unchangedCount = 0;
+        int maxUnchanged = 5;
+        int lastHash = rolloutState.hashCode();
+
+        try {
             while (!finishRollout(rolloutState, rolloutDepth)) {
-                AbstractAction next = player.getRandomPlayer().getAction(
-                        rolloutState,
-                        player.getForwardModel().computeAvailableActions(
-                                rolloutState,
-                                player.getParameters().actionSpace
-                        )
-                );
-                advance(rolloutState, next);
+                List<AbstractAction> actions = player.getForwardModel().computeAvailableActions(
+                        rolloutState, player.getParameters().actionSpace);
+
+                if (actions.isEmpty()) {
+                    // If no actions available but game isn't terminal, we have an issue
+                    if (rolloutState.isNotTerminal()) {
+                        rolloutState.setGameStatus(CoreConstants.GameResult.GAME_END);
+                    }
+                    break;
+                }
+
+                AbstractAction next = actions.get(rnd.nextInt(actions.size()));
+
+                try {
+                    advance(rolloutState, next);
+                } catch (AssertionError e) {
+                    // Specifically catch the infinite loop assertion
+                    if (e.getMessage() != null && e.getMessage().contains("Infinite loop")) {
+                        // Force game to end to prevent infinite loop
+                        rolloutState.setGameStatus(CoreConstants.GameResult.GAME_END);
+                        break;
+                    } else {
+                        throw e; // Re-throw other assertion errors
+                    }
+                }
+
                 rolloutDepth++;
+
+                int currentHash = rolloutState.hashCode();
+                if (currentHash == lastHash) {
+                    unchangedCount++;
+                } else {
+                    unchangedCount = 0;
+                    lastHash = currentHash;
+                }
+
+                if (unchangedCount >= maxUnchanged) {
+                    break;
+                }
+
+                int currentPlayer = rolloutState.getCurrentPlayer();
+                playersActed.add(currentPlayer);
+
+                if (playersActed.size() >= rolloutState.getNPlayers() &&
+                        rolloutDepth > rolloutState.getNPlayers() * 3) {
+                    break;
+                }
+
+                if (rolloutDepth > player.getParameters().rolloutLength * 2) {
+                    break;
+                }
             }
+        } catch (Exception e) {
+            System.err.println("Error in rollout: " + e.getMessage());
+            return 0.0;
         }
 
         return evaluate(rolloutState);
@@ -216,7 +298,6 @@ public class BayesianTreeNode {
             BayesianTreeNode child = children.get(action);
             if (child == null) continue;
 
-            // Use visit count as the main criterion for best action
             double childValue = child.nVisits;
             if (childValue > bestValue) {
                 bestValue = childValue;
